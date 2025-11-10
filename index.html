@@ -105,6 +105,17 @@
           <button id="clearTokenBtn" class="ghost" style="margin-top: 8px; margin-left: 8px;">Clear Token</button>
           <div id="tokenStatus" style="margin-top: 8px; font-size: 12px;"></div>
         </div>
+        
+        <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid rgba(0,255,255,0.2);">
+          <label style="display: block; margin-bottom: 8px; color: var(--neon); font-weight: 600;">
+            Test Spin
+          </label>
+          <p style="font-size: 12px; color: var(--muted); margin: 8px 0;">
+            Test the Slack notification by spinning the wheel. This will send to the dev channel and will NOT be saved to the ledger.
+          </p>
+          <button id="testSpinBtn" class="ghost" style="margin-top: 8px;">🧪 Test Spin</button>
+          <div id="testSpinStatus" style="margin-top: 8px; font-size: 12px;"></div>
+        </div>
       </div>
     </details>
 
@@ -122,6 +133,7 @@
             <canvas id="pieChart"></canvas>
           </div>
         </div>
+        <div id="userHistograms" style="margin-top: 24px;"></div>
       </div>
     </details>
   </div>

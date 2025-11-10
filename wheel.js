@@ -21,6 +21,7 @@ const CHANNEL_TO_USE = DEBUG ? DEV_SLACK_WEBHOOK_URL : SF_TEAMS_SLACK_WEBHOOK_UR
 // Spin history storage
 const SPIN_HISTORY_KEY = "lunchWheelSpinHistory";
 const USER_NAME_KEY = "lunchWheelUserName";
+const USER_ID_KEY = "lunchWheelUserId";
 const LEDGER_JSON_FILE = "ledger.json"; // File in the repo to store ledger data
 const GITHUB_REPO_OWNER = "alec-octave";
 const GITHUB_REPO_NAME = "alec-octave.github.io";
@@ -656,6 +657,28 @@ respinsBtn.addEventListener("click", () => {
   spinToWinner(name);
 });
 
+// Generate a unique user ID
+function generateUserId() {
+  return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Get user ID from localStorage (create if doesn't exist)
+function getUserId() {
+  let userId = localStorage.getItem(USER_ID_KEY);
+  if (!userId) {
+    // Initialize from existing username if available (for backward compatibility)
+    const existingName = localStorage.getItem(USER_NAME_KEY);
+    if (existingName) {
+      // Generate ID based on existing name hash for consistency
+      userId = 'user_' + btoa(existingName).replace(/[^a-zA-Z0-9]/g, '').substr(0, 16) + '_' + Date.now();
+    } else {
+      userId = generateUserId();
+    }
+    localStorage.setItem(USER_ID_KEY, userId);
+  }
+  return userId;
+}
+
 // Get user name from localStorage
 function getUserName() {
   return localStorage.getItem(USER_NAME_KEY) || null;
@@ -665,6 +688,8 @@ function getUserName() {
 function saveUserName(name) {
   if (name && name.trim()) {
     localStorage.setItem(USER_NAME_KEY, name.trim());
+    // Ensure user ID exists
+    getUserId();
     return true;
   }
   return false;
@@ -731,10 +756,12 @@ function checkUserName() {
 async function saveSpinToHistory(result) {
   const history = await getSpinHistory();
   const userName = getUserName();
+  const userId = getUserId();
   const entry = {
     timestamp: new Date().toISOString(),
     result: result,
-    user: userName || 'Unknown'
+    user: userName || 'Unknown',
+    userId: userId
   };
   history.push(entry);
 
@@ -949,6 +976,10 @@ async function sendToSlack(winner, screenshotDataUrl) {
           {
             type: "mrkdwn",
             text: `*Time:*\n${new Date().toLocaleString()}`
+          },
+          {
+            type: "mrkdwn",
+            text: `*Spun by:*\n${getUserName() || 'Unknown'}`
           }
         ]
       }
@@ -1151,6 +1182,7 @@ async function testImageUpload() {
 // Lunch Ledger functions
 let histogramChart = null;
 let pieChart = null;
+let userHistogramCharts = {};
 
 async function updateLunchLedger() {
   const history = await getSpinHistory();
@@ -1161,6 +1193,7 @@ async function updateLunchLedger() {
   // Update charts
   updateHistogramChart(history);
   updatePieChart(history);
+  updateUserHistograms(history);
 }
 
 function updateLedgerTable(history) {
@@ -1347,9 +1380,124 @@ function updatePieChart(history) {
   });
 }
 
+function updateUserHistograms(history) {
+  const container = document.getElementById("userHistograms");
+  if (!container) return;
+
+  // Filter last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const recent = history.filter(entry => {
+    const date = new Date(entry.timestamp);
+    return date >= thirtyDaysAgo;
+  });
+
+  // Group by user
+  const userSpins = {};
+  recent.forEach(entry => {
+    const userId = entry.userId || entry.user || 'unknown';
+    const userName = entry.user || 'Unknown';
+    if (!userSpins[userId]) {
+      userSpins[userId] = {
+        name: userName,
+        spins: []
+      };
+    }
+    userSpins[userId].spins.push(entry);
+  });
+
+  // Clear existing charts
+  Object.values(userHistogramCharts).forEach(chart => {
+    if (chart) chart.destroy();
+  });
+  userHistogramCharts = {};
+  container.innerHTML = '';
+
+  // Create histogram for each user
+  Object.entries(userSpins).forEach(([userId, userData]) => {
+    if (userData.spins.length === 0) return;
+
+    // Group spins by date
+    const byDate = {};
+    userData.spins.forEach(entry => {
+      const date = new Date(entry.timestamp);
+      const dateKey = date.toLocaleDateString();
+      byDate[dateKey] = (byDate[dateKey] || 0) + 1;
+    });
+
+    // Get last 30 days
+    const dates = [];
+    const counts = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateKey = date.toLocaleDateString();
+      dates.push(dateKey);
+      counts.push(byDate[dateKey] || 0);
+    }
+
+    // Create chart wrapper
+    const chartWrapper = document.createElement('div');
+    chartWrapper.className = 'chart-wrapper';
+    chartWrapper.style.marginTop = '24px';
+
+    const title = document.createElement('h3');
+    title.textContent = `${userData.name} - Last 30 Days`;
+    chartWrapper.appendChild(title);
+
+    const canvas = document.createElement('canvas');
+    canvas.id = `userHistogram_${userId}`;
+    chartWrapper.appendChild(canvas);
+    container.appendChild(chartWrapper);
+
+    // Create chart
+    const chart = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: dates,
+        datasets: [{
+          label: "Spins per day",
+          data: counts,
+          backgroundColor: "rgba(0, 255, 255, 0.6)",
+          borderColor: "rgba(0, 255, 255, 1)",
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          },
+          x: {
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45
+            }
+          }
+        }
+      }
+    });
+
+    userHistogramCharts[userId] = chart;
+  });
+}
+
 // Initialize ledger after wheel is drawn
 drawWheel(currentRotation);
 renderItemsList();
+// Initialize user ID (creates one if doesn't exist)
+getUserId();
 // Initialize name modal
 initNameModal();
 // Check for user name on startup
