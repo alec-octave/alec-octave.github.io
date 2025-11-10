@@ -14,7 +14,7 @@ const itemsListEl = document.getElementById("itemsList");
 const confettiEl = document.getElementById("confetti");
 
 // Slack webhook URL
-const SF_TEAMS_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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";
+const SF_TEAMS_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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";
 const DEV_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
 const DEBUG = false;
 const CHANNEL_TO_USE = DEBUG ? DEV_SLACK_WEBHOOK_URL : SF_TEAMS_SLACK_WEBHOOK_URL;
