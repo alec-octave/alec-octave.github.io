@@ -25,12 +25,15 @@
       <canvas id="wheel" width="680" height="680" aria-label="Lunch picker wheel"></canvas>
     </div>
 
+    <div id="winner" class="winner" role="status" aria-live="polite" style="display: none;"></div>
     <div class="controls">
       <button id="spinBtn" class="primary">Spin</button>
       <button id="respinsBtn" class="ghost" title="Spin again without changing weights">Respin</button>
+      <button id="shareToSlackBtn" class="ghost" style="display: none;" title="Share result to Slack">Share to Slack</button>
+      <!-- TEST BUTTON - Comment out when done testing -->
+      <!-- <button id="testImageUploadBtn" class="ghost" style="background: rgba(255, 165, 0, 0.2); border-color: orange;" title="Test image upload">🧪 Test Image Upload</button> -->
     </div>
 
-    <div id="winner" class="winner" role="status" aria-live="polite"></div>
     <div id="confetti" class="confetti" aria-hidden="true"></div>
 
     <details class="items">
@@ -42,10 +45,61 @@
       </div>
       <div id="itemsList"></div>
     </details>
+
+    <details class="items" id="settingsSection">
+      <summary>⚙️ Settings</summary>
+      <div style="padding: 16px;">
+        <label for="githubTokenInput" style="display: block; margin-bottom: 8px; color: var(--neon); font-weight: 600;">
+          GitHub Token (for ledger sync)
+        </label>
+        <input
+          type="password"
+          id="githubTokenInput"
+          placeholder="Enter your GitHub Personal Access Token"
+          style="width: 100%; padding: 8px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,255,255,0.3); color: var(--text); font-family: monospace; margin-bottom: 8px;"
+        />
+        <p style="font-size: 12px; color: var(--muted); margin: 8px 0;">
+          Add your GitHub token to sync spins to the shared ledger.
+          <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--neon);">Get token here</a>
+          (needs "repo" scope or fine-grained with "Contents: Write" for this repo).
+        </p>
+        <button id="saveTokenBtn" class="ghost" style="margin-top: 8px;">Save Token</button>
+        <button id="testTokenBtn" class="ghost" style="margin-top: 8px; margin-left: 8px;">Test Token</button>
+        <button id="clearTokenBtn" class="ghost" style="margin-top: 8px; margin-left: 8px;">Clear Token</button>
+        <div id="tokenStatus" style="margin-top: 8px; font-size: 12px;"></div>
+      </div>
+    </details>
+
+    <details class="items" id="lunchLedger">
+      <summary>Lunch Ledger</summary>
+      <div id="ledgerContent">
+        <div id="ledgerTable"></div>
+        <div class="charts-container">
+          <div class="chart-wrapper">
+            <h3>Top Winners (Last 30 Days)</h3>
+            <canvas id="histogramChart"></canvas>
+          </div>
+          <div class="chart-wrapper">
+            <h3>Distribution</h3>
+            <canvas id="pieChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </details>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- GitHub token is now managed via Settings UI and stored in localStorage -->
+  <!-- No need to hardcode tokens in the repo -->
+  <!-- Set your Cloudinary credentials here for image uploads -->
+  <!-- Cloud name from your account -->
+  <script>window.CLOUDINARY_CLOUD_NAME = 'dr8wfog1s';</script>
+  <!-- Create an unsigned upload preset in Cloudinary Dashboard: Settings > Upload > Upload presets -->
+  <!-- Then set the preset name here (e.g., 'ml_default' or whatever you name it) -->
+  <!-- https://console.cloudinary.com/app/c-18e4d21ca6a68c0b5c3750cf57b926/settings/upload/presets -->
+  <script>window.CLOUDINARY_UPLOAD_PRESET = 'octave_wheel';</script>
   <script src="./wheel.js" type="module"></script>
-  
+
   <!-- 80s floating rings -->
   <div class="floating-ring ring-1"></div>
   <div class="floating-ring ring-2"></div>
@@ -60,7 +114,7 @@
   <div class="shape orb p-tr-2"></div>
   <div class="shape tri grad p-bl-1"></div>
   <div class="shape bar p-br-1"></div>
-  
+
   <!-- Octave logos in corners -->
   <div class="octave-logo logo-tl">
     <svg viewBox="0 0 40 40" width="40" height="40">
