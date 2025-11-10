@@ -20,6 +20,7 @@ const DEBUG = false;
 const CHANNEL_TO_USE = DEBUG ? DEV_SLACK_WEBHOOK_URL : SF_TEAMS_SLACK_WEBHOOK_URL;
 // Spin history storage
 const SPIN_HISTORY_KEY = "lunchWheelSpinHistory";
+const USER_NAME_KEY = "lunchWheelUserName";
 const LEDGER_JSON_FILE = "ledger.json"; // File in the repo to store ledger data
 const GITHUB_REPO_OWNER = "alec-octave";
 const GITHUB_REPO_NAME = "alec-octave.github.io";
@@ -655,12 +656,85 @@ respinsBtn.addEventListener("click", () => {
   spinToWinner(name);
 });
 
+// Get user name from localStorage
+function getUserName() {
+  return localStorage.getItem(USER_NAME_KEY) || null;
+}
+
+// Save user name to localStorage
+function saveUserName(name) {
+  if (name && name.trim()) {
+    localStorage.setItem(USER_NAME_KEY, name.trim());
+    return true;
+  }
+  return false;
+}
+
+// Initialize name modal (only once)
+let nameModalInitialized = false;
+
+function initNameModal() {
+  if (nameModalInitialized) return;
+
+  const modal = document.getElementById('nameModal');
+  const nameInput = document.getElementById('userNameInput');
+  const saveNameBtn = document.getElementById('saveNameBtn');
+
+  if (!modal || !nameInput || !saveNameBtn) {
+    setTimeout(initNameModal, 100);
+    return;
+  }
+
+  nameModalInitialized = true;
+
+  // Save on button click
+  saveNameBtn.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (name) {
+      saveUserName(name);
+      modal.style.display = 'none';
+    } else {
+      alert('Please enter your name');
+    }
+  });
+
+  // Save on Enter key
+  nameInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      saveNameBtn.click();
+    }
+  });
+}
+
+// Show name collection modal
+function showNameModal() {
+  initNameModal();
+  const modal = document.getElementById('nameModal');
+  const nameInput = document.getElementById('userNameInput');
+
+  if (modal && nameInput) {
+    modal.style.display = 'flex';
+    nameInput.value = ''; // Clear input
+    nameInput.focus();
+  }
+}
+
+// Check for user name on page load
+function checkUserName() {
+  const userName = getUserName();
+  if (!userName) {
+    showNameModal();
+  }
+}
+
 // Spin history functions
 async function saveSpinToHistory(result) {
   const history = await getSpinHistory();
+  const userName = getUserName();
   const entry = {
     timestamp: new Date().toISOString(),
-    result: result
+    result: result,
+    user: userName || 'Unknown'
   };
   history.push(entry);
 
@@ -1107,6 +1181,7 @@ function updateLedgerTable(history) {
         <tr>
           <th>Date</th>
           <th>Time</th>
+          <th>User</th>
           <th>Result</th>
         </tr>
       </thead>
@@ -1117,10 +1192,12 @@ function updateLedgerTable(history) {
     const date = new Date(entry.timestamp);
     const dateStr = date.toLocaleDateString();
     const timeStr = date.toLocaleTimeString();
+    const user = entry.user || 'Unknown';
     html += `
       <tr>
         <td>${dateStr}</td>
         <td>${timeStr}</td>
+        <td>${escapeHtml(user)}</td>
         <td>${escapeHtml(entry.result)}</td>
       </tr>
     `;
@@ -1273,6 +1350,10 @@ function updatePieChart(history) {
 // Initialize ledger after wheel is drawn
 drawWheel(currentRotation);
 renderItemsList();
+// Initialize name modal
+initNameModal();
+// Check for user name on startup
+checkUserName();
 // Load ledger from GitHub file on startup
 getSpinHistory().then(() => {
   updateLunchLedger();
@@ -1316,6 +1397,44 @@ async function testGitHubToken() {
 // GitHub token management UI
 // Use a function that runs immediately (module scripts run after DOM is ready)
 function initTokenManagement() {
+  // Name management
+  const nameInput = document.getElementById('userNameSettingsInput');
+  const saveNameBtn = document.getElementById('saveNameSettingsBtn');
+  const nameStatus = document.getElementById('nameStatus');
+
+  if (nameInput && saveNameBtn && nameStatus) {
+    // Load existing name
+    const existingName = getUserName();
+    if (existingName) {
+      nameInput.value = existingName;
+      nameStatus.textContent = '✅ Name saved';
+      nameStatus.style.color = 'var(--green)';
+    }
+
+    // Save name
+    saveNameBtn.addEventListener('click', () => {
+      const name = nameInput.value.trim();
+      if (name) {
+        if (saveUserName(name)) {
+          nameStatus.textContent = '✅ Name saved successfully!';
+          nameStatus.style.color = 'var(--green)';
+        }
+      } else {
+        nameStatus.textContent = '⚠️ Please enter a name';
+        nameStatus.style.color = 'var(--red)';
+      }
+    });
+
+    // Update status on input
+    nameInput.addEventListener('input', () => {
+      if (nameInput.value.trim()) {
+        nameStatus.textContent = '💾 Click "Save Name" to save';
+        nameStatus.style.color = 'var(--neon)';
+      }
+    });
+  }
+
+  // Token management
   const tokenInput = document.getElementById('githubTokenInput');
   const saveTokenBtn = document.getElementById('saveTokenBtn');
   const testTokenBtn = document.getElementById('testTokenBtn');

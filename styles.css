@@ -157,10 +157,16 @@ button:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .chart-wrapper h3{color:var(--neon);font-size:18px;margin:0 0 16px 0;text-transform:uppercase;letter-spacing:1px;font-weight:700;text-align:center}
 .chart-wrapper canvas{max-height:300px}
 
+/* Modal styles */
+.modal{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-content{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border:2px solid;border-image:linear-gradient(45deg,var(--neon),var(--pink),var(--purple)) 1;padding:32px;max-width:400px;width:90%;box-shadow:0 0 40px rgba(0,255,255,0.3);position:relative}
+.modal-content h2{font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:2px}
+
 @media (max-width:560px){
   .app{padding:16px}
   .floating-ring{display:none}
   .charts-container{grid-template-columns:1fr}
+  .modal-content{padding:24px}
 }
 
 

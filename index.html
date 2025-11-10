@@ -17,6 +17,25 @@
   <div class="star s3"></div>
   <div class="star s4"></div>
   <div class="star s5"></div>
+
+  <!-- Name Collection Modal -->
+  <div id="nameModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2 style="color: var(--neon); margin-top: 0;">Welcome to the Lunch Wheel!</h2>
+      <p style="color: var(--text); margin-bottom: 16px;">Please enter your name to track your spins in the ledger:</p>
+      <input
+        type="text"
+        id="userNameInput"
+        placeholder="Your name"
+        style="width: 100%; padding: 12px; background: rgba(0,0,0,0.6); border: 2px solid rgba(0,255,255,0.3); color: var(--text); font-size: 16px; font-family: 'Courier New', monospace; margin-bottom: 16px;"
+        autofocus
+      />
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button id="saveNameBtn" class="primary" style="margin: 0;">Save</button>
+      </div>
+    </div>
+  </div>
+
   <div class="app">
     <h1>Octave Lunch Wheel of Destiny</h1>
 
@@ -49,24 +68,43 @@
     <details class="items" id="settingsSection">
       <summary>⚙️ Settings</summary>
       <div style="padding: 16px;">
-        <label for="githubTokenInput" style="display: block; margin-bottom: 8px; color: var(--neon); font-weight: 600;">
-          GitHub Token (for ledger sync)
-        </label>
-        <input
-          type="password"
-          id="githubTokenInput"
-          placeholder="Enter your GitHub Personal Access Token"
-          style="width: 100%; padding: 8px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,255,255,0.3); color: var(--text); font-family: monospace; margin-bottom: 8px;"
-        />
-        <p style="font-size: 12px; color: var(--muted); margin: 8px 0;">
-          Add your GitHub token to sync spins to the shared ledger.
-          <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--neon);">Get token here</a>
-          (needs "repo" scope or fine-grained with "Contents: Write" for this repo).
-        </p>
-        <button id="saveTokenBtn" class="ghost" style="margin-top: 8px;">Save Token</button>
-        <button id="testTokenBtn" class="ghost" style="margin-top: 8px; margin-left: 8px;">Test Token</button>
-        <button id="clearTokenBtn" class="ghost" style="margin-top: 8px; margin-left: 8px;">Clear Token</button>
-        <div id="tokenStatus" style="margin-top: 8px; font-size: 12px;"></div>
+        <div style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid rgba(0,255,255,0.2);">
+          <label for="userNameSettingsInput" style="display: block; margin-bottom: 8px; color: var(--neon); font-weight: 600;">
+            Your Name
+          </label>
+          <input
+            type="text"
+            id="userNameSettingsInput"
+            placeholder="Enter your name"
+            style="width: 100%; padding: 8px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,255,255,0.3); color: var(--text); font-family: monospace; margin-bottom: 8px;"
+          />
+          <p style="font-size: 12px; color: var(--muted); margin: 8px 0;">
+            Your name will be recorded with each spin in the ledger.
+          </p>
+          <button id="saveNameSettingsBtn" class="ghost" style="margin-top: 8px;">Save Name</button>
+          <div id="nameStatus" style="margin-top: 8px; font-size: 12px;"></div>
+        </div>
+
+        <div>
+          <label for="githubTokenInput" style="display: block; margin-bottom: 8px; color: var(--neon); font-weight: 600;">
+            GitHub Token (for ledger sync)
+          </label>
+          <input
+            type="password"
+            id="githubTokenInput"
+            placeholder="Enter your GitHub Personal Access Token"
+            style="width: 100%; padding: 8px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,255,255,0.3); color: var(--text); font-family: monospace; margin-bottom: 8px;"
+          />
+          <p style="font-size: 12px; color: var(--muted); margin: 8px 0;">
+            Add your GitHub token to sync spins to the shared ledger.
+            <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--neon);">Get token here</a>
+            (needs "repo" scope or fine-grained with "Contents: Write" for this repo).
+          </p>
+          <button id="saveTokenBtn" class="ghost" style="margin-top: 8px;">Save Token</button>
+          <button id="testTokenBtn" class="ghost" style="margin-top: 8px; margin-left: 8px;">Test Token</button>
+          <button id="clearTokenBtn" class="ghost" style="margin-top: 8px; margin-left: 8px;">Clear Token</button>
+          <div id="tokenStatus" style="margin-top: 8px; font-size: 12px;"></div>
+        </div>
       </div>
     </details>
 
