@@ -15,7 +15,7 @@ const confettiEl = document.getElementById("confetti");
 
 // Slack webhook URL
 const SF_TEAMS_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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";
-const DEV_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+const DEV_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
 const DEBUG = false;
 const CHANNEL_TO_USE = DEBUG ? DEV_SLACK_WEBHOOK_URL : SF_TEAMS_SLACK_WEBHOOK_URL;
 // Spin history storage
@@ -488,8 +488,10 @@ function triggerWinnerCelebration(name){
     setTimeout(()=>{ s.remove(); }, 1600);
   }
 
-  // Save spin to history
-  saveSpinToHistory(name);
+  // Save spin to history (skip if test spin)
+  if (!window._skipHistorySave) {
+    saveSpinToHistory(name);
+  }
 
   // Show share button
   shareToSlackBtn.style.display = "inline-block";
@@ -910,7 +912,11 @@ async function saveToGitHubFile(history) {
 // This could be done with a backend service
 
 // Slack notification
-async function sendToSlack(winner, screenshotDataUrl) {
+async function sendToSlack(winner, screenshotDataUrl, webhookUrl = null) {
+  // Default to the configured channel if not specified
+  if (!webhookUrl) {
+    webhookUrl = CHANNEL_TO_USE;
+  }
   try {
     // Upload screenshot to Cloudinary
     let imageUrl = null;
@@ -1004,15 +1010,20 @@ async function sendToSlack(winner, screenshotDataUrl) {
     // Slack webhooks don't support CORS from browsers
     // Use no-cors mode to send the request (we can't read the response, but it will send)
     // Note: no-cors mode doesn't allow custom headers, so we send JSON as plain text
-    await fetch(CHANNEL_TO_USE, {
+    await fetch(webhookUrl, {
       method: "POST",
       mode: "no-cors", // Bypasses CORS but we can't read response or set custom headers
       body: JSON.stringify(payload)
     });
 
+    console.log('Slack message sent to:', webhookUrl);
+
     // With no-cors, response will always be opaque, so we can't check if it succeeded
     // But the request will be sent. Show success message optimistically.
-    alert("✅ Shared to Slack!");
+    // Only show alert if not a test spin (test spin has its own status)
+    if (!window._skipHistorySave) {
+      alert("✅ Shared to Slack!");
+    }
   } catch (error) {
     console.error("Error sending to Slack:", error);
     alert("❌ Failed to share to Slack. Please try again.");
@@ -1542,6 +1553,58 @@ async function testGitHubToken() {
   }
 }
 
+// Test spin function (sends to dev channel, doesn't save to ledger)
+async function performTestSpin() {
+  const testSpinBtn = document.getElementById('testSpinBtn');
+  const testSpinStatus = document.getElementById('testSpinStatus');
+
+  if (!testSpinBtn || !testSpinStatus) return;
+
+  // Disable button during spin
+  testSpinBtn.disabled = true;
+  testSpinBtn.textContent = 'Spinning...';
+  testSpinStatus.textContent = '🔄 Spinning wheel...';
+  testSpinStatus.style.color = 'var(--neon)';
+
+  try {
+    // Pick a random winner
+    const winner = pickWeighted(items);
+
+    // Set a flag to skip history save
+    window._skipHistorySave = true;
+
+    // Perform the spin (this will call spinToWinner which checks the flag)
+    await spinToWinner(winner);
+
+    // Clear the flag
+    window._skipHistorySave = false;
+
+    // Wait a moment for animation
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Capture screenshot
+    testSpinStatus.textContent = '📸 Capturing screenshot...';
+    const screenshotDataUrl = captureWheelScreenshot(winner);
+
+    // Send to dev Slack channel
+    testSpinStatus.textContent = '📤 Sending to dev Slack...';
+    await sendToSlack(winner, screenshotDataUrl, DEV_SLACK_WEBHOOK_URL);
+
+    testSpinStatus.textContent = '✅ Test spin sent to dev channel!';
+    testSpinStatus.style.color = 'var(--green)';
+
+  } catch (error) {
+    console.error('Test spin error:', error);
+    testSpinStatus.textContent = `❌ Error: ${error.message}`;
+    testSpinStatus.style.color = 'var(--red)';
+    // Clear flag on error
+    window._skipHistorySave = false;
+  } finally {
+    testSpinBtn.disabled = false;
+    testSpinBtn.textContent = '🧪 Test Spin';
+  }
+}
+
 // GitHub token management UI
 // Use a function that runs immediately (module scripts run after DOM is ready)
 function initTokenManagement() {
@@ -1659,6 +1722,12 @@ function initTokenManagement() {
       tokenStatus.style.color = 'var(--neon)';
     }
   });
+
+  // Test spin button
+  const testSpinBtn = document.getElementById('testSpinBtn');
+  if (testSpinBtn) {
+    testSpinBtn.addEventListener('click', performTestSpin);
+  }
 }
 
 // Initialize when DOM is ready
