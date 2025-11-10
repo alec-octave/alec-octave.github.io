@@ -899,7 +899,7 @@ async function sendToSlack(winner, screenshotDataUrl) {
     // Slack webhooks don't support CORS from browsers
     // Use no-cors mode to send the request (we can't read the response, but it will send)
     // Note: no-cors mode doesn't allow custom headers, so we send JSON as plain text
-    await fetch(DEV_SLACK_WEBHOOK_URL, {
+    await fetch(CHANNEL_TO_USE, {
       method: "POST",
       mode: "no-cors", // Bypasses CORS but we can't read response or set custom headers
       body: JSON.stringify(payload)
