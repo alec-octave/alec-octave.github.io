@@ -14,8 +14,8 @@ const itemsListEl = document.getElementById("itemsList");
 const confettiEl = document.getElementById("confetti");
 
 // Slack webhook URL
-const SF_TEAMS_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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";
-const DEV_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+const SF_TEAMS_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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";
+const DEV_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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";
 const DEBUG = false;
 const CHANNEL_TO_USE = DEBUG ? DEV_SLACK_WEBHOOK_URL : SF_TEAMS_SLACK_WEBHOOK_URL;
 // Spin history storage
