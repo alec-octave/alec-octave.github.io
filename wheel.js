@@ -13,11 +13,40 @@ const winnerEl = document.getElementById("winner");
 const itemsListEl = document.getElementById("itemsList");
 const confettiEl = document.getElementById("confetti");
 
-// Slack webhook URL
-const SF_TEAMS_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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";
-const DEV_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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";
+// Slack webhook URL storage keys
+const SF_TEAMS_WEBHOOK_KEY = "lunchWheelSfTeamsWebhook";
+const DEV_WEBHOOK_KEY = "lunchWheelDevWebhook";
 const DEBUG = false;
-const CHANNEL_TO_USE = DEBUG ? DEV_SLACK_WEBHOOK_URL : SF_TEAMS_SLACK_WEBHOOK_URL;
+
+// Get webhook URLs from localStorage (with fallback to defaults for backward compatibility)
+function getSfTeamsWebhook() {
+  return localStorage.getItem(SF_TEAMS_WEBHOOK_KEY) || "https://hooks.slack.com/services/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";
+}
+
+function getDevWebhook() {
+  return localStorage.getItem(DEV_WEBHOOK_KEY) || "https://hooks.slack.com/services/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";
+}
+
+function saveSfTeamsWebhook(url) {
+  if (url && url.trim()) {
+    localStorage.setItem(SF_TEAMS_WEBHOOK_KEY, url.trim());
+    return true;
+  }
+  return false;
+}
+
+function saveDevWebhook(url) {
+  if (url && url.trim()) {
+    localStorage.setItem(DEV_WEBHOOK_KEY, url.trim());
+    return true;
+  }
+  return false;
+}
+
+function getChannelToUse() {
+  return DEBUG ? getDevWebhook() : getSfTeamsWebhook();
+}
+
 // Spin history storage
 const SPIN_HISTORY_KEY = "lunchWheelSpinHistory";
 const USER_NAME_KEY = "lunchWheelUserName";
@@ -720,6 +749,8 @@ function initNameModal() {
     if (name) {
       saveUserName(name);
       modal.style.display = 'none';
+      // Check for SF Teams webhook after name is saved
+      setTimeout(checkSfTeamsWebhook, 500);
     } else {
       alert('Please enter your name');
     }
@@ -915,7 +946,7 @@ async function saveToGitHubFile(history) {
 async function sendToSlack(winner, screenshotDataUrl, webhookUrl = null) {
   // Default to the configured channel if not specified
   if (!webhookUrl) {
-    webhookUrl = CHANNEL_TO_USE;
+    webhookUrl = getChannelToUse();
   }
   try {
     // Upload screenshot to Cloudinary
@@ -1586,9 +1617,9 @@ async function performTestSpin() {
     testSpinStatus.textContent = '📸 Capturing screenshot...';
     const screenshotDataUrl = captureWheelScreenshot(winner);
 
-    // Send to dev Slack channel
-    testSpinStatus.textContent = '📤 Sending to dev Slack...';
-    await sendToSlack(winner, screenshotDataUrl, DEV_SLACK_WEBHOOK_URL);
+      // Send to dev Slack channel
+      testSpinStatus.textContent = '📤 Sending to dev Slack...';
+      await sendToSlack(winner, screenshotDataUrl, getDevWebhook());
 
     testSpinStatus.textContent = '✅ Test spin sent to dev channel!';
     testSpinStatus.style.color = 'var(--green)';
@@ -1602,6 +1633,39 @@ async function performTestSpin() {
   } finally {
     testSpinBtn.disabled = false;
     testSpinBtn.textContent = '🧪 Test Spin';
+  }
+}
+
+// Check for SF Teams webhook (only after user has entered their name)
+function checkSfTeamsWebhook() {
+  // First check if user has a name - don't prompt for webhook if they don't
+  const userName = getUserName();
+  if (!userName) {
+    return; // Skip check if no name is set
+  }
+
+  // Check if user has saved a webhook in localStorage
+  const savedWebhook = localStorage.getItem(SF_TEAMS_WEBHOOK_KEY);
+
+  // If no webhook is saved, prompt user
+  if (!savedWebhook) {
+    const shouldAdd = confirm(
+      "⚠️ SF Teams Webhook Not Configured!\n\n" +
+      "Please add the SF Teams Slack webhook URL to enable notifications.\n\n" +
+      "You can find the webhook URL in the pinned messages in the #sf-team channel.\n\n" +
+      "Would you like to open Settings to add it now?"
+    );
+    if (shouldAdd) {
+      // Open settings section
+      const settingsSection = document.getElementById("settingsSection");
+      if (settingsSection) {
+        settingsSection.open = true;
+        const webhookInput = document.getElementById("sfTeamsWebhookInput");
+        if (webhookInput) {
+          setTimeout(() => webhookInput.focus(), 100);
+        }
+      }
+    }
   }
 }
 
@@ -1629,6 +1693,8 @@ function initTokenManagement() {
         if (saveUserName(name)) {
           nameStatus.textContent = '✅ Name saved successfully!';
           nameStatus.style.color = 'var(--green)';
+          // Check for SF Teams webhook after name is saved
+          setTimeout(checkSfTeamsWebhook, 500);
         }
       } else {
         nameStatus.textContent = '⚠️ Please enter a name';
@@ -1641,6 +1707,104 @@ function initTokenManagement() {
       if (nameInput.value.trim()) {
         nameStatus.textContent = '💾 Click "Save Name" to save';
         nameStatus.style.color = 'var(--neon)';
+      }
+    });
+  }
+
+  // SF Teams Webhook management
+  const sfTeamsWebhookInput = document.getElementById('sfTeamsWebhookInput');
+  const saveSfTeamsWebhookBtn = document.getElementById('saveSfTeamsWebhookBtn');
+  const clearSfTeamsWebhookBtn = document.getElementById('clearSfTeamsWebhookBtn');
+  const sfTeamsWebhookStatus = document.getElementById('sfTeamsWebhookStatus');
+
+  if (sfTeamsWebhookInput && saveSfTeamsWebhookBtn && clearSfTeamsWebhookBtn && sfTeamsWebhookStatus) {
+    // Load existing webhook (masked)
+    const existingWebhook = getSfTeamsWebhook();
+    if (existingWebhook && localStorage.getItem(SF_TEAMS_WEBHOOK_KEY)) {
+      sfTeamsWebhookInput.value = '••••••••••••••••'; // Masked display
+      sfTeamsWebhookStatus.textContent = '✅ Webhook saved (hidden for security)';
+      sfTeamsWebhookStatus.style.color = 'var(--green)';
+    }
+
+    // Save webhook
+    saveSfTeamsWebhookBtn.addEventListener('click', () => {
+      const webhook = sfTeamsWebhookInput.value.trim();
+      if (webhook && webhook !== '••••••••••••••••') {
+        if (saveSfTeamsWebhook(webhook)) {
+          sfTeamsWebhookInput.value = '••••••••••••••••'; // Mask after saving
+          sfTeamsWebhookStatus.textContent = '✅ Webhook saved successfully!';
+          sfTeamsWebhookStatus.style.color = 'var(--green)';
+        }
+      } else {
+        sfTeamsWebhookStatus.textContent = '⚠️ Please enter a valid webhook URL';
+        sfTeamsWebhookStatus.style.color = 'var(--red)';
+      }
+    });
+
+    // Clear webhook
+    clearSfTeamsWebhookBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear the SF Teams webhook? Notifications won\'t work.')) {
+        localStorage.removeItem(SF_TEAMS_WEBHOOK_KEY);
+        sfTeamsWebhookInput.value = '';
+        sfTeamsWebhookStatus.textContent = '🗑️ Webhook cleared';
+        sfTeamsWebhookStatus.style.color = 'var(--muted)';
+      }
+    });
+
+    // Update status on input
+    sfTeamsWebhookInput.addEventListener('input', () => {
+      if (sfTeamsWebhookInput.value && sfTeamsWebhookInput.value !== '••••••••••••••••') {
+        sfTeamsWebhookStatus.textContent = '💾 Click "Save SF Teams Webhook" to save';
+        sfTeamsWebhookStatus.style.color = 'var(--neon)';
+      }
+    });
+  }
+
+  // Dev Webhook management
+  const devWebhookInput = document.getElementById('devWebhookInput');
+  const saveDevWebhookBtn = document.getElementById('saveDevWebhookBtn');
+  const clearDevWebhookBtn = document.getElementById('clearDevWebhookBtn');
+  const devWebhookStatus = document.getElementById('devWebhookStatus');
+
+  if (devWebhookInput && saveDevWebhookBtn && clearDevWebhookBtn && devWebhookStatus) {
+    // Load existing webhook (masked)
+    const existingWebhook = getDevWebhook();
+    if (existingWebhook && localStorage.getItem(DEV_WEBHOOK_KEY)) {
+      devWebhookInput.value = '••••••••••••••••'; // Masked display
+      devWebhookStatus.textContent = '✅ Webhook saved (hidden for security)';
+      devWebhookStatus.style.color = 'var(--green)';
+    }
+
+    // Save webhook
+    saveDevWebhookBtn.addEventListener('click', () => {
+      const webhook = devWebhookInput.value.trim();
+      if (webhook && webhook !== '••••••••••••••••') {
+        if (saveDevWebhook(webhook)) {
+          devWebhookInput.value = '••••••••••••••••'; // Mask after saving
+          devWebhookStatus.textContent = '✅ Webhook saved successfully!';
+          devWebhookStatus.style.color = 'var(--green)';
+        }
+      } else {
+        devWebhookStatus.textContent = '⚠️ Please enter a valid webhook URL';
+        devWebhookStatus.style.color = 'var(--red)';
+      }
+    });
+
+    // Clear webhook
+    clearDevWebhookBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear the dev webhook? Test spins won\'t work.')) {
+        localStorage.removeItem(DEV_WEBHOOK_KEY);
+        devWebhookInput.value = '';
+        devWebhookStatus.textContent = '🗑️ Webhook cleared';
+        devWebhookStatus.style.color = 'var(--muted)';
+      }
+    });
+
+    // Update status on input
+    devWebhookInput.addEventListener('input', () => {
+      if (devWebhookInput.value && devWebhookInput.value !== '••••••••••••••••') {
+        devWebhookStatus.textContent = '💾 Click "Save Dev Webhook" to save';
+        devWebhookStatus.style.color = 'var(--neon)';
       }
     });
   }
@@ -1732,10 +1896,14 @@ function initTokenManagement() {
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initTokenManagement);
+  document.addEventListener('DOMContentLoaded', () => {
+    initTokenManagement();
+    // Don't check webhook on startup - only after user enters their name
+  });
 } else {
   // DOM is already ready
   initTokenManagement();
+  // Don't check webhook on startup - only after user enters their name
 }
 
 
